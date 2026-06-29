@@ -706,6 +706,8 @@ if (video) {
         dots.forEach((d, i) => { d.classList.toggle('active', i === idx); });
     }
 
+    if (totalSlides > 1) setInterval(function() { goToSlide(currentSlide + 1); }, 1500);
+
     // Package selection
     var pkgNames = ['Mua 1 lọ','Mua 2 lọ','Mua 3 lọ','Mua 5 lọ'];
     var pkgAmounts = ['129.000₫','189.000₫','249.000₫','349.000₫'];
