@@ -469,7 +469,7 @@ if (video) {
                 <div class="countdown-item"><div class="num" id="seconds2">00</div><div class="label">Giây</div></div>
             </div>
             <div class="packages">
-                <div class="package selected">
+                <div class="package">
                     <div class="pkg-name">Mua 1 lọ</div>
                     <div><span class="pkg-old">299.000₫</span> <span class="pkg-price">99.000₫</span></div>
                     <div class="pkg-gift">+ 30.000₫ phí ship</div>
@@ -491,15 +491,17 @@ if (video) {
                 </div>
             </div>
             <p style="font-size:12px;color:#e52d27;text-align:center;margin-bottom:16px;">⚠️ Chỉ còn duy nhất 32 phần quà tặng</p>
+            <div id="pkgErr" style="color:#e52d27;font-size:13px;text-align:center;margin-bottom:10px;display:none;">⚠️ Vui lòng chọn gói sản phẩm</div>
             <form id="orderForm" onsubmit="return submitOrder(event)">
-                <input type="hidden" name="product" id="selectedPackage" value="Mua 1 lọ">
+                <input type="hidden" name="product" id="selectedPackage" value="">
                 <div class="form-group">
                     <label>Họ và tên *</label>
                     <input type="text" name="name" required placeholder="Nhập họ tên">
                 </div>
                 <div class="form-group">
                     <label>Số điện thoại *</label>
-                    <input type="tel" name="phone" required placeholder="Nhập số điện thoại">
+                    <input type="tel" name="phone" placeholder="Nhập số điện thoại (10 số)">
+                    <div id="phoneErr" style="color:#e52d27;font-size:12px;margin-top:4px;display:none;">SĐT phải đúng 10 số</div>
                 </div>
                 <div class="form-group">
                     <label>Tỉnh / Thành phố</label>
@@ -530,15 +532,30 @@ if (video) {
                 e.preventDefault();
                 const f = document.getElementById('orderForm');
                 const btn = f.querySelector('button[type=submit]');
+                const phone = f.phone.value.replace(/\D/g, '');
+                document.getElementById('phoneErr').style.display = 'none';
+                document.getElementById('pkgErr').style.display = 'none';
+                if (phone.length !== 10) {
+                    document.getElementById('phoneErr').style.display = 'block';
+                    f.phone.focus();
+                    return false;
+                }
+                if (!f.product.value) {
+                    document.getElementById('pkgErr').style.display = 'block';
+                    document.querySelector('.packages').scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    return false;
+                }
                 btn.disabled = true; btn.textContent = '⏳ Đang gửi...';
-                const formData = new FormData(f);
-                const params = new URLSearchParams(formData);
-                fetch('https://script.google.com/macros/s/AKfycbzlVa9LObahzMbJoiml3HA59_MfsPWb5kiEUBvoc-tGXEGA3iGhCKhQK8MKgGJnSBoO/exec', {
-                    method: 'POST', mode: 'no-cors', body: params
+                var pkgIdx = Array.from(document.querySelectorAll('.package')).findIndex(p => p.classList.contains('selected'));
+                var amt = [' - 129.000₫',' - 189.000₫',' - 249.000₫',' - 349.000₫'][pkgIdx] || '';
+                const data = { name: f.name.value, phone: f.phone.value, address: f.address.value, province: f.province.value, district: f.district.value, ward: f.ward.value, product: f.product.value + amt };
+                fetch('https://script.google.com/macros/s/AKfycbw8Itk_xbcBeMIIbnjIwv1RGTlSZVHUExn7aOs21jbTJm-p-bJutz0EqXnQcVfQHfQx/exec', {
+                    method: 'POST', mode: 'no-cors', body: JSON.stringify(data), headers: { 'Content-Type': 'text/plain' }
                 }).then(() => {
                     btn.textContent = '✅ ĐÃ GỬI! CẢM ƠN BẠN';
                     btn.style.background = '#28a745';
                     f.reset();
+                    document.getElementById('thankupopup').style.display = 'flex';
                     setTimeout(() => { btn.disabled = false; btn.textContent = '✅ XÁC NHẬN ĐẶT HÀNG'; btn.style.background = ''; }, 3000);
                 }).catch(() => {
                     btn.textContent = '❌ LỖI! THỬ LẠI';
@@ -690,11 +707,20 @@ if (video) {
     }
 
     // Package selection
-    document.querySelectorAll('.package').forEach(pkg => {
+    var pkgNames = ['Mua 1 lọ','Mua 2 lọ','Mua 3 lọ','Mua 5 lọ'];
+    var pkgAmounts = ['129.000₫','189.000₫','249.000₫','349.000₫'];
+    document.querySelectorAll('.package').forEach((pkg, idx) => {
         pkg.addEventListener('click', function() {
-            document.querySelectorAll('.package').forEach(p => p.classList.remove('selected'));
-            this.classList.add('selected');
-            document.getElementById('selectedPackage').value = this.querySelector('.pkg-name').textContent.trim();
+            var inp = document.getElementById('selectedPackage');
+            if (this.classList.contains('selected')) {
+                this.classList.remove('selected');
+                inp.value = '';
+            } else {
+                document.querySelectorAll('.package').forEach(p => p.classList.remove('selected'));
+                this.classList.add('selected');
+                inp.value = pkgNames[idx];
+            }
+            document.getElementById('pkgErr').style.display = 'none';
         });
     });
 
@@ -765,5 +791,21 @@ if (video) {
         });
     })();
 </script>
+
+<div id="thankupopup" style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,.5);z-index:9999;align-items:center;justify-content:center;">
+    <div style="background:#fff;border-radius:20px;padding:40px 32px 28px;text-align:center;max-width:400px;width:90%;box-shadow:0 10px 40px rgba(0,0,0,.2);">
+        <div style="font-size:56px;margin-bottom:12px;">🎉</div>
+        <h3 style="font-size:20px;color:#333;margin:0 0 6px;">ĐẶT HÀNG THÀNH CÔNG!</h3>
+        <p style="font-size:14px;color:#333;line-height:1.5;margin:0 0 8px;font-weight:600;">Đơn hàng của anh chị đã được xác nhận và gửi đi ngay hôm nay</p>
+        <div style="font-size:13px;color:#666;line-height:1.6;margin-bottom:10px;text-align:left;background:#f9f9f9;border-radius:12px;padding:12px 16px;">
+            <div>🚚 <strong>Miền Nam:</strong> 2-4 ngày nhận hàng</div>
+            <div>🚚 <strong>Miền Trung:</strong> 3-5 ngày nhận hàng</div>
+            <div>🚚 <strong>Miền Bắc:</strong> 4-6 ngày nhận hàng</div>
+        </div>
+        <p style="font-size:13px;color:#e52d27;font-weight:600;margin:0 0 20px;">📞 Anh chị nhớ chú ý điện thoại — sẽ có nhân viên gọi lại xác nhận đơn hàng!</p>
+        <button onclick="this.closest('#thankupopup').style.display='none';window.scrollTo({top:0,behavior:'smooth'})" style="background:linear-gradient(135deg,#e52d27,#b31217);color:#fff;border:none;border-radius:50px;padding:12px 32px;font-weight:700;font-size:15px;cursor:pointer;">TRỞ VỀ TRANG CHỦ</button>
+    </div>
+</div>
+
 </body>
 </html>
